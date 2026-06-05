@@ -114,7 +114,6 @@ input[type="text"]:focus, input[type="date"]:focus{ border-color:#2563eb; }
 
     <div class="login-logo">📋</div>
     <div class="login-title">Asistencia QR</div>
-    <div class="login-subtitle">Grupo El Rey</div>
 
     <label class="login-label" for="aliasInput">Usuario</label>
     <input class="login-input" type="text" id="aliasInput"
@@ -132,7 +131,7 @@ input[type="text"]:focus, input[type="date"]:focus{ border-color:#2563eb; }
     <button class="login-btn" id="loginBtn" onclick="iniciarSesion()">Ingresar</button>
 
   </div>
-  <p style="font-size:12px; color:#d1d5db; margin-top:16px; font-weight:600;">Sistema RRHH — Grupo El Rey</p>
+  <p style="font-size:12px; color:#d1d5db; margin-top:16px; font-weight:600;">Sistema RRHH</p>
 </div>
 
 <!-- ═══════════════════════════════════════════════════════════ APP ═══ -->
@@ -232,9 +231,10 @@ input[type="text"]:focus, input[type="date"]:focus{ border-color:#2563eb; }
 // ============================================================
 // ⚙️  CONFIGURACIÓN — solo cambiar si se mueve el backend
 // ============================================================
-// En local (desarrollo): 'http://localhost:3000/api/qr'
-// En producción:         'https://TU-APP.vercel.app/api/qr'
-var API     = 'https://TU-APP.vercel.app/api/qr';
+// ⚠️  CAMBIAR ANTES DE PUBLICAR EN PRODUCCIÓN:
+// Local (pruebas en red LAN):  'http://192.168.18.109:3000/api/qr'
+// Producción (Vercel):         'https://TU-APP.vercel.app/api/qr'
+var API     = 'http://localhost:3000/api/qr';
 var API_KEY = 'c134a884f5188bdb0c4863475d956764';
 // ────────────────────────────────────────────────────────────
 
