@@ -1,0 +1,699 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Asistencia QR — Grupo El Rey</title>
+<script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js" defer></script>
+
+<style>
+*{ box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+body{ margin:0; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif; background:#f4f6f9; color:#111827; }
+
+/* ── TOPBAR ── */
+.topbar{ background:white; padding:12px 20px; display:flex; align-items:center; justify-content:space-between; box-shadow:0 2px 10px rgba(0,0,0,.05); position:sticky; top:0; z-index:50; width:100%; }
+.menuBtn{ background:none; border:none; font-size:26px; color:#111827; cursor:pointer; padding:0; width:30px; line-height:1; }
+.topbar-titles{ display:flex; flex-direction:column; align-items:center; flex-grow:1; pointer-events:none; }
+.topbar-title{ font-size:19px; font-weight:900; margin:0; line-height:1.1; color:#111827; }
+.topbar-sub{ font-size:13px; color:#6b7280; font-weight:700; margin-top:2px; }
+.topbar-spacer{ width:30px; }
+
+/* ── SIDEBAR ── */
+#sidebarBackdrop{ position:fixed; inset:0; background:rgba(0,0,0,.6); z-index:90; opacity:0; pointer-events:none; transition:opacity .2s; }
+#sidebarBackdrop.open{ opacity:1; pointer-events:all; }
+#sidebar{ position:fixed; top:0; left:0; bottom:0; width:260px; background:white; z-index:100; transform:translateX(-100%); transition:transform .2s; display:flex; flex-direction:column; padding:30px 20px; box-shadow:5px 0 15px rgba(0,0,0,.15); }
+#sidebar.open{ transform:translateX(0); }
+.sideHeader{ font-size:20px; font-weight:900; margin-bottom:6px; text-align:center; color:#111827; letter-spacing:.5px; line-height:1.2; }
+.sideSubHeader{ font-size:12px; color:#9ca3af; font-weight:600; text-align:center; margin-bottom:24px; }
+.sideItem{ background:none; border:none; color:#4b5563; text-align:left; padding:15px; font-size:17px; font-weight:700; border-radius:12px; margin-bottom:8px; cursor:pointer; transition:.2s; width:100%; }
+.sideItem:active{ background:#f3f4f6; }
+.sideItem.active{ background:#eff6ff; color:#2563eb; }
+
+/* ── LAYOUT ── */
+.wrapper{ max-width:520px; margin:auto; padding:20px; display:flex; flex-direction:column; align-items:center; }
+.card{ background:white; border-radius:18px; padding:25px; box-shadow:0 10px 35px rgba(0,0,0,.06); margin-bottom:20px; width:100%; max-width:480px; }
+.text-center{ text-align:center; }
+
+/* ── LOGIN ── */
+.login-logo{ display:inline-flex; align-items:center; justify-content:center; width:64px; height:64px; background:#111827; border-radius:20px; font-size:30px; margin-bottom:16px; box-shadow:0 8px 24px rgba(0,0,0,.2); }
+.login-title{ font-size:24px; font-weight:900; color:#111827; margin:0 0 4px; }
+.login-subtitle{ font-size:14px; color:#9ca3af; margin:0 0 28px; font-weight:600; }
+.login-label{ display:block; text-align:left; font-size:11px; font-weight:700; color:#9ca3af; text-transform:uppercase; letter-spacing:.08em; margin-bottom:5px; }
+.login-input{ width:100%; padding:14px 16px; border-radius:12px; border:1.5px solid #e5e7eb; margin-bottom:18px; font-size:16px; background:white; outline:none; color:#111827; transition:.15s; }
+.login-input:focus{ border-color:#111827; box-shadow:0 0 0 3px rgba(17,24,39,.08); }
+#pinInput{ text-align:center; letter-spacing:.25em; font-size:22px; font-weight:700; }
+.login-btn{ width:100%; padding:15px; border-radius:12px; border:none; background:#111827; color:white; font-weight:700; font-size:16px; cursor:pointer; transition:.1s; }
+.login-btn:active{ transform:scale(.98); background:#1f2937; }
+.login-btn:disabled{ opacity:.6; cursor:not-allowed; transform:none; }
+.login-error{ display:none; background:#fee2e2; color:#991b1b; border:1px solid #fecaca; border-radius:10px; padding:12px; margin-bottom:14px; font-weight:700; font-size:13px; text-align:center; }
+
+/* ── FORMS ── */
+.view-title{ text-align:center; margin:0 0 15px; font-weight:700; font-size:22px; color:#111827; }
+select{ width:100%; padding:14px; border-radius:12px; border:1px solid #d1d5db; margin-bottom:12px; font-size:16px; background:white; outline:none; color:#111827; text-align-last:center; font-weight:600; cursor:pointer; }
+select:focus{ border-color:#2563eb; }
+button{ width:100%; padding:14px; border-radius:12px; border:none; margin-bottom:12px; font-size:16px; background:#111827; color:white; cursor:pointer; font-weight:700; transition:.1s; }
+button:active{ transform:scale(.96); background:#1f2937; }
+input[type="text"], input[type="date"]{ width:100%; padding:14px 16px; border-radius:12px; border:1px solid #d1d5db; margin-bottom:12px; font-size:16px; background:white; outline:none; color:#111827; }
+input[type="text"]:focus, input[type="date"]:focus{ border-color:#2563eb; }
+
+.btn-blue{ background:#2563eb; }
+.btn-blue:active{ background:#1d4ed8; transform:scale(.96); }
+.btn-refresh{ background:#2563eb; color:white; padding:16px; font-size:18px; font-weight:800; border-radius:14px; box-shadow:0 4px 15px rgba(37,99,235,.3); margin-bottom:20px; display:flex; align-items:center; justify-content:center; gap:8px; }
+.btn-refresh:active{ background:#1d4ed8; }
+
+/* ── QR ── */
+#qr-reader{ margin-top:10px; border-radius:14px; overflow:hidden; display:none; border:2px solid #e5e7eb; width:100%; background:#000; }
+.divider{ text-align:center; font-size:13px; color:#9ca3af; font-weight:800; margin:20px 0 15px; letter-spacing:1px; }
+
+/* ── STATUS ── */
+.status-area{ min-height:45px; display:flex; align-items:center; justify-content:center; margin-bottom:12px; }
+.status-msg{ width:100%; text-align:center; font-weight:700; padding:12px; border-radius:10px; font-size:15px; line-height:1.4; animation:popIn .2s ease; }
+@keyframes popIn{ 0%{ opacity:0; transform:scale(.95); } 100%{ opacity:1; transform:scale(1); } }
+.status-msg.success{ background:#dcfce7; color:#166534; border:1px solid #bbf7d0; }
+.status-msg.error  { background:#fee2e2; color:#991b1b; border:1px solid #fecaca; }
+.status-msg.loading{ color:#4b5563; font-weight:600; background:#f3f4f6; border:1px solid #e5e7eb; }
+
+/* ── PANEL ── */
+.search-bar{ border:2px solid #e5e7eb; border-radius:12px; padding:14px 16px; font-weight:600; font-size:15px; margin-bottom:20px; }
+.search-bar:focus{ border-color:#2563eb; }
+.panel-card{ background:white; border-radius:16px; padding:16px; margin-bottom:12px; box-shadow:0 4px 15px rgba(0,0,0,.04); border:1px solid #e5e7eb; width:100%; max-width:480px; }
+.pc-header{ border-bottom:2px solid #f3f4f6; padding-bottom:10px; margin-bottom:10px; }
+.pc-name{ font-weight:800; font-size:15px; line-height:1.2; color:#111827; }
+.pc-sub{ font-size:12px; color:#6b7280; font-weight:600; margin-top:3px; }
+.pc-row{ display:flex; justify-content:space-between; align-items:center; padding:7px 0; border-bottom:1px dashed #f3f4f6; }
+.pc-row:last-child{ border-bottom:none; padding-bottom:0; }
+.pc-label{ font-weight:600; color:#6b7280; font-size:13px; }
+.pc-val{ font-weight:700; font-size:13px; color:#111827; display:flex; align-items:center; gap:4px; flex-wrap:wrap; justify-content:flex-end; }
+.badge-entrada  { background:#dcfce7; color:#166534; padding:2px 8px; border-radius:20px; font-size:12px; font-weight:800; }
+.badge-salida   { background:#fee2e2; color:#991b1b; padding:2px 8px; border-radius:20px; font-size:12px; font-weight:800; }
+.badge-refrig   { background:#fef3c7; color:#92400e; padding:2px 8px; border-radius:20px; font-size:12px; font-weight:800; }
+.badge-sinmarcar{ background:#f3f4f6; color:#6b7280; padding:2px 8px; border-radius:20px; font-size:12px; font-weight:800; }
+.tarde-chip{ background:#fee2e2; color:#991b1b; padding:2px 8px; border-radius:20px; font-size:12px; font-weight:800; }
+
+/* ── TARDANZAS ── */
+.tard-label{ font-size:13px; font-weight:700; color:#6b7280; display:block; margin-bottom:4px; text-align:left; }
+.tard-resumen{ background:white; border-radius:18px; padding:20px; box-shadow:0 10px 35px rgba(0,0,0,.06); margin-bottom:20px; width:100%; max-width:480px; text-align:center; border:2px solid #fee2e2; }
+.tard-total-num { font-size:52px; font-weight:900; color:#991b1b; line-height:1; }
+.tard-total-cero{ color:#166534; }
+.tard-total-label{ font-size:12px; color:#9ca3af; font-weight:600; margin-top:4px; }
+.tard-badge      { display:inline-block; padding:3px 10px; border-radius:20px; font-size:13px; font-weight:800; }
+.tard-badge-alto { background:#fee2e2; color:#991b1b; }
+.tard-badge-medio{ background:#fef3c7; color:#92400e; }
+.tard-badge-bajo { background:#dcfce7; color:#166534; }
+</style>
+</head>
+
+<body>
+<audio id="sndSuccess" src="https://actions.google.com/sounds/v1/alarms/beep_short.ogg"        preload="auto"></audio>
+<audio id="sndError"   src="https://actions.google.com/sounds/v1/alarms/mechanical_buzzer.ogg" preload="auto"></audio>
+<audio id="sndClick"   src="https://actions.google.com/sounds/v1/ui/button_click.ogg"          preload="auto"></audio>
+
+<!-- ═══════════════════════════════════════════════════════════ LOGIN ══ -->
+<div class="wrapper" id="loginWrap">
+  <div class="card text-center" style="margin-top:6vh;">
+
+    <div class="login-logo">📋</div>
+    <div class="login-title">Asistencia QR</div>
+    <div class="login-subtitle">Grupo El Rey</div>
+
+    <label class="login-label" for="aliasInput">Usuario</label>
+    <input class="login-input" type="text" id="aliasInput"
+           placeholder="Ej: ADMIN_RL"
+           autocapitalize="characters" autocorrect="off"
+           spellcheck="false" autocomplete="off"
+           onkeydown="if(event.key==='Enter')document.getElementById('pinInput').focus()">
+
+    <label class="login-label" for="pinInput">PIN</label>
+    <input class="login-input" type="password" id="pinInput"
+           placeholder="••••••" inputmode="numeric"
+           onkeydown="if(event.key==='Enter')iniciarSesion()">
+
+    <div class="login-error" id="loginError"></div>
+    <button class="login-btn" id="loginBtn" onclick="iniciarSesion()">Ingresar</button>
+
+  </div>
+  <p style="font-size:12px; color:#d1d5db; margin-top:16px; font-weight:600;">Sistema RRHH — Grupo El Rey</p>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════ APP ═══ -->
+<div id="app" style="display:none; width:100%;">
+
+  <header class="topbar">
+    <button class="menuBtn" onclick="toggleSidebar()">☰</button>
+    <div class="topbar-titles">
+      <div class="topbar-title" id="topbarTitle">Registro QR</div>
+      <div class="topbar-sub"  id="topbarSucursal"></div>
+    </div>
+    <div class="topbar-spacer"></div>
+  </header>
+
+  <div id="sidebarBackdrop" onclick="toggleSidebar()"></div>
+  <nav id="sidebar">
+    <div class="sideHeader"    id="sidebarSucursal"></div>
+    <div class="sideSubHeader" id="sidebarAlias"></div>
+    <button id="btnNavQR"        class="sideItem active" onclick="switchView('qr')">📸 Escáner QR</button>
+    <button id="btnNavPanel"     class="sideItem"        onclick="switchView('panel')">📊 Panel Hoy</button>
+    <button id="btnNavTardanzas" class="sideItem"        onclick="switchView('tardanzas')">⏰ Tardanzas</button>
+    <div style="flex-grow:1;"></div>
+    <button class="sideItem" style="color:#991b1b;" onclick="cerrarSesion()">🚪 Cerrar Sesión</button>
+  </nav>
+
+  <div class="wrapper">
+
+    <!-- ─── ESCÁNER QR ─── -->
+    <div id="viewQR" style="width:100%;">
+      <div class="card text-center" style="margin:auto;">
+        <h2 class="view-title">Registro de Asistencia</h2>
+        <select id="tipo">
+          <option value="">Seleccionar tipo de marcaje</option>
+          <option value="Entrada">ENTRADA</option>
+          <option value="Salida">SALIDA</option>
+          <option value="Salida Refrigerio">SALIDA A REFRIGERIO</option>
+          <option value="Entrada Refrigerio">ENTRADA A REFRIGERIO</option>
+        </select>
+        <button onclick="toggleCamara()" id="btnCamara" class="btn-blue">📸 Iniciar Cámara</button>
+        <div id="mensajeArea" class="status-area" style="display:none;"></div>
+        <div id="qr-reader"></div>
+        <div class="divider">— O INGRESO MANUAL —</div>
+        <input type="text" id="dniManual" placeholder="Ingresar DNI" inputmode="numeric"
+               onkeydown="if(event.key==='Enter')registrarManual()">
+        <input type="text" id="observacion" placeholder="Observación (opcional)">
+        <button onclick="registrarManual()">Registrar Manual</button>
+      </div>
+    </div>
+
+    <!-- ─── PANEL HOY ─── -->
+    <div id="viewPanel" style="display:none; width:100%; max-width:480px; margin:auto;">
+      <button onclick="loadPanel()" class="btn-refresh">🔄 Cargar / Actualizar</button>
+      <input type="text" id="buscadorPanel" class="search-bar"
+             placeholder="🔍 Buscar colaborador..." oninput="filtrarPanel()">
+      <div id="panelContainer" style="display:flex; flex-direction:column; align-items:center; width:100%;">
+        <div class="card text-center" style="font-weight:600; color:#4b5563; box-shadow:none; border:1px solid #e5e7eb;">
+          Presiona el botón para cargar la asistencia de hoy.
+        </div>
+      </div>
+    </div>
+
+    <!-- ─── TARDANZAS ─── -->
+    <div id="viewTardanzas" style="display:none; width:100%; max-width:480px; margin:auto;">
+      <div class="card">
+        <h2 class="view-title">Reporte de Tardanzas</h2>
+
+        <label class="tard-label">Colaborador (opcional)</label>
+        <select id="tardColab" style="margin-bottom:16px;">
+          <option value="">— Todos —</option>
+        </select>
+
+        <label class="tard-label">Desde</label>
+        <input type="date" id="tardDesde" style="margin-bottom:16px;">
+
+        <label class="tard-label">Hasta</label>
+        <input type="date" id="tardHasta" style="margin-bottom:16px;">
+
+        <button onclick="consultarTardanzas()" id="btnTard" class="btn-blue">🔍 Consultar</button>
+        <div id="tardStatus" class="status-area" style="display:none;"></div>
+      </div>
+
+      <div id="tardResumen" class="tard-resumen" style="display:none;">
+        <div style="font-size:12px; font-weight:700; color:#6b7280; margin-bottom:6px; text-transform:uppercase; letter-spacing:1px;">
+          Total minutos de tardanza
+        </div>
+        <div id="tardTotal"  class="tard-total-num">0</div>
+        <div id="tardSub"    class="tard-total-label"></div>
+        <div id="tardPeriodo" style="margin-top:8px; font-size:13px; font-weight:700; color:#374151;"></div>
+      </div>
+      <div id="tardContainer" style="display:flex; flex-direction:column; align-items:center; width:100%;"></div>
+    </div>
+
+  </div><!-- /wrapper -->
+</div><!-- /app -->
+
+<script>
+// ============================================================
+// ⚙️  CONFIGURACIÓN — solo cambiar si se mueve el backend
+// ============================================================
+// En local (desarrollo): 'http://localhost:3000/api/qr'
+// En producción:         'https://TU-APP.vercel.app/api/qr'
+var API     = 'https://TU-APP.vercel.app/api/qr';
+var API_KEY = 'c134a884f5188bdb0c4863475d956764';
+// ────────────────────────────────────────────────────────────
+
+// Estado de sesión — se completa DESPUÉS del login
+var SUCURSAL = '';   // viene del servidor según el alias
+var ALIAS    = '';
+
+// ============================================================
+// ESPEJO LOCAL — caché de colaboradores (respuesta instantánea)
+// ============================================================
+var dbEspejo    = { byEid: {}, byDoc: {} };
+var marcLocales = {};
+
+function cargarEspejo() {
+  var key   = 'espejo_' + SUCURSAL.replace(/ /g, '_');
+  var local = localStorage.getItem(key);
+  if (local) { try { dbEspejo = JSON.parse(local); } catch (e) {} }
+
+  fetch(API + '/espejo?sucursalNombre=' + encodeURIComponent(SUCURSAL) + '&apiKey=' + API_KEY)
+    .then(function (r) { return r.json(); })
+    .then(function (res) {
+      if (res.ok && res.data) {
+        dbEspejo = res.data;
+        localStorage.setItem(key, JSON.stringify(dbEspejo));
+      }
+    })
+    .catch(function () {});
+}
+
+// ============================================================
+// AUDIO
+// ============================================================
+function playAudio(tipo) {
+  var id = tipo === 'exito' ? 'sndSuccess' : tipo === 'error' ? 'sndError' : 'sndClick';
+  var s  = document.getElementById(id);
+  if (!s) return;
+  s.currentTime = 0;
+  s.volume = 1.0;
+  var p = s.play();
+  if (p) p.catch(function () {});
+}
+
+// ============================================================
+// LOGIN — alias + PIN → servidor devuelve la sucursal
+// ============================================================
+function iniciarSesion() {
+  var alias = document.getElementById('aliasInput').value.trim().toUpperCase();
+  var pin   = document.getElementById('pinInput').value.trim();
+  var errEl = document.getElementById('loginError');
+  errEl.style.display = 'none';
+
+  if (!alias) { errEl.textContent = '⚠️ Ingresa tu usuario'; errEl.style.display = 'block'; return; }
+  if (!pin)   { errEl.textContent = '⚠️ Ingresa tu PIN';    errEl.style.display = 'block'; return; }
+
+  var btn = document.getElementById('loginBtn');
+  btn.textContent = 'Verificando...';
+  btn.disabled = true;
+
+  fetch(API + '/login', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ alias: alias, pin: pin, apiKey: API_KEY }),
+  })
+    .then(function (r) { return r.json(); })
+    .then(function (data) {
+      btn.textContent = 'Ingresar';
+      btn.disabled    = false;
+
+      if (!data.ok) {
+        errEl.textContent = '❌ ' + (data.message || 'Usuario o PIN incorrecto');
+        errEl.style.display = 'block';
+        return;
+      }
+
+      // ✅ Login OK — el servidor nos dice la sucursal
+      SUCURSAL = data.sucursalNombre;
+      ALIAS    = data.alias || alias;
+
+      // Actualizar header y sidebar con la sucursal del operador
+      document.getElementById('topbarSucursal').textContent  = SUCURSAL;
+      document.getElementById('sidebarSucursal').textContent = SUCURSAL;
+      document.getElementById('sidebarAlias').textContent    = '👤 ' + ALIAS;
+
+      // Mostrar app y limpiar campos
+      document.getElementById('loginWrap').style.display = 'none';
+      document.getElementById('app').style.display       = 'block';
+      document.getElementById('pinInput').value   = '';
+      document.getElementById('aliasInput').value = '';
+
+      cargarEspejo();
+    })
+    .catch(function () {
+      btn.textContent = 'Ingresar';
+      btn.disabled    = false;
+      errEl.textContent = '❌ Error de conexión con el servidor';
+      errEl.style.display = 'block';
+    });
+}
+
+function cerrarSesion() {
+  if (!confirm('¿Cerrar sesión?')) return;
+  SUCURSAL    = '';
+  ALIAS       = '';
+  dbEspejo    = { byEid: {}, byDoc: {} };
+  marcLocales = {};
+  document.getElementById('app').style.display       = 'none';
+  document.getElementById('loginWrap').style.display = 'block';
+  toggleSidebar(true);
+  detenerQR();
+  switchView('qr');
+}
+
+// ============================================================
+// NAVEGACIÓN
+// ============================================================
+function toggleSidebar(forceClose) {
+  var sb = document.getElementById('sidebar');
+  var bd = document.getElementById('sidebarBackdrop');
+  if (sb.classList.contains('open') || forceClose) {
+    sb.classList.remove('open'); bd.classList.remove('open');
+  } else {
+    sb.classList.add('open'); bd.classList.add('open');
+  }
+}
+
+function switchView(v) {
+  ['viewQR', 'viewPanel', 'viewTardanzas'].forEach(function (id) {
+    document.getElementById(id).style.display = 'none';
+  });
+  ['btnNavQR', 'btnNavPanel', 'btnNavTardanzas'].forEach(function (id) {
+    document.getElementById(id).classList.remove('active');
+  });
+  if (v === 'qr') {
+    document.getElementById('viewQR').style.display    = 'block';
+    document.getElementById('btnNavQR').classList.add('active');
+    document.getElementById('topbarTitle').textContent = 'Registro QR';
+  } else if (v === 'panel') {
+    document.getElementById('viewPanel').style.display   = 'block';
+    document.getElementById('btnNavPanel').classList.add('active');
+    document.getElementById('topbarTitle').textContent   = 'Panel Hoy';
+    detenerQR();
+  } else if (v === 'tardanzas') {
+    document.getElementById('viewTardanzas').style.display   = 'block';
+    document.getElementById('btnNavTardanzas').classList.add('active');
+    document.getElementById('topbarTitle').textContent       = 'Tardanzas';
+    detenerQR();
+  }
+  toggleSidebar(true);
+}
+
+function mostrarMsg(texto, estilo) {
+  var a = document.getElementById('mensajeArea');
+  a.style.display = 'flex';
+  a.innerHTML = '<div class="status-msg ' + estilo + '">' + texto + '</div>';
+  if (estilo !== 'loading') setTimeout(function () { a.style.display = 'none'; }, 3500);
+}
+
+// ============================================================
+// CÁMARA QR
+// ============================================================
+var qrReader;
+var camaraActiva = false;
+var ultimoQR     = '';
+var ultimoT      = 0;
+
+function toggleCamara() { camaraActiva ? detenerQR() : iniciarQR(); }
+
+function iniciarQR() {
+  qrReader = new Html5Qrcode('qr-reader');
+  document.getElementById('qr-reader').style.display    = 'block';
+  document.getElementById('btnCamara').textContent      = '🛑 Detener Cámara';
+  document.getElementById('btnCamara').style.background = '#991b1b';
+  camaraActiva = true;
+
+  qrReader
+    .start(
+      { facingMode: 'environment' },
+      { fps: 15, qrbox: { width: 230, height: 230 }, disableFlip: true },
+      function (decoded) {
+        var ahora = Date.now();
+        if (decoded === ultimoQR && ahora - ultimoT < 2000) return;
+        ultimoQR = decoded;
+        ultimoT  = ahora;
+        playAudio('click');
+        registrar(decoded.trim(), 'QR', '');
+      }
+    )
+    .catch(function () {
+      mostrarMsg('⚠️ Da acceso a la cámara e inténtalo de nuevo.', 'error');
+      detenerQR();
+    });
+}
+
+function detenerQR() {
+  if (qrReader) {
+    qrReader.stop().then(function () {
+      document.getElementById('qr-reader').style.display    = 'none';
+      document.getElementById('btnCamara').textContent      = '📸 Iniciar Cámara';
+      document.getElementById('btnCamara').style.background = '#2563eb';
+      camaraActiva = false;
+    }).catch(function () {});
+  }
+}
+
+function registrarManual() {
+  var dni = document.getElementById('dniManual').value.trim();
+  var obs = document.getElementById('observacion').value.trim();
+  registrar(dni, 'Manual', obs);
+}
+
+// ============================================================
+// REGISTRO
+// ============================================================
+function registrar(valor, origen, obs) {
+  var tipo = document.getElementById('tipo').value;
+  if (!tipo)  { playAudio('error'); mostrarMsg('⚠️ Selecciona el tipo de marcaje primero', 'error'); return; }
+  if (!valor) { playAudio('error'); mostrarMsg('⚠️ Ingresa el QR o DNI del colaborador', 'error'); return; }
+
+  // Buscar en caché local para respuesta instantánea
+  var emp = origen === 'Manual'
+    ? dbEspejo.byDoc[valor.replace(/\D/g, '').trim()]
+    : dbEspejo.byEid[valor.trim()];
+
+  if (!emp) {
+    enviarAlServidor(valor, origen, obs, tipo, null);
+    return;
+  }
+
+  var hoy    = new Date().toISOString().split('T')[0];
+  var dupKey = hoy + '_' + emp.doc + '_' + tipo;
+  if (marcLocales[dupKey]) {
+    playAudio('error');
+    mostrarMsg('⚠️ Ya registraste "' + tipo + '" hoy.', 'error');
+    return;
+  }
+  marcLocales[dupKey] = true;
+  playAudio('exito');
+  mostrarMsg('✔ REGISTRADO<br>' + emp.nombre, 'success');
+  document.getElementById('dniManual').value   = '';
+  document.getElementById('observacion').value = '';
+  enviarAlServidor(valor, origen, obs, tipo, dupKey);
+}
+
+function enviarAlServidor(valor, origen, obs, tipo, dupKey) {
+  if (dupKey === null) mostrarMsg('Buscando colaborador... 🚀', 'loading');
+
+  var payload = origen === 'Manual'
+    ? { dni: valor.replace(/\D/g, '').trim(), tipo: tipo, sucursalNombre: SUCURSAL, apiKey: API_KEY }
+    : { eid: valor.trim(),                    tipo: tipo, sucursalNombre: SUCURSAL, apiKey: API_KEY };
+  if (obs) payload.observacion = obs;
+
+  fetch(API + '/registrar', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  })
+    .then(function (r) { return r.json(); })
+    .then(function (data) {
+      if (data.ok) {
+        if (dupKey === null) {
+          playAudio('exito');
+          mostrarMsg('✔ REGISTRADO<br>' + data.nombre, 'success');
+          document.getElementById('dniManual').value   = '';
+          document.getElementById('observacion').value = '';
+        }
+      } else {
+        if (dupKey) delete marcLocales[dupKey];
+        playAudio('error');
+        mostrarMsg('❌ ' + (data.message || 'Error al registrar'), 'error');
+      }
+    })
+    .catch(function () {
+      if (dupKey === null) {
+        playAudio('error');
+        mostrarMsg('❌ Error de internet. Verifica la conexión.', 'error');
+      }
+    });
+}
+
+// ============================================================
+// PANEL HOY
+// ============================================================
+function loadPanel() {
+  var container = document.getElementById('panelContainer');
+  document.getElementById('buscadorPanel').value = '';
+  container.innerHTML =
+    '<div class="card text-center" style="color:#2563eb;border:1px solid #bfdbfe;background:#eff6ff;font-weight:600;">⏳ Cargando asistencia de hoy...</div>';
+
+  fetch(API + '/panel?sucursalNombre=' + encodeURIComponent(SUCURSAL) + '&apiKey=' + API_KEY)
+    .then(function (r) { return r.json(); })
+    .then(function (res) {
+      if (!res.ok) {
+        container.innerHTML =
+          '<div class="card text-center" style="color:#991b1b;font-weight:700;">❌ ' + (res.message || 'Error') + '</div>';
+        return;
+      }
+      renderPanel(res.rows);
+    })
+    .catch(function () {
+      container.innerHTML =
+        '<div class="card text-center" style="color:#991b1b;font-weight:700;">❌ Error de conexión</div>';
+    });
+}
+
+function tipoBadge(tipo) {
+  if (!tipo) return '<span class="badge-sinmarcar">Sin marcar</span>';
+  var t = (tipo || '').toUpperCase();
+  if (t === 'ENTRADA')           return '<span class="badge-entrada">ENTRADA</span>';
+  if (t === 'SALIDA')            return '<span class="badge-salida">SALIDA</span>';
+  if (t.includes('REFRIGERIO'))  return '<span class="badge-refrig">' + tipo + '</span>';
+  return '<span class="badge-refrig">' + tipo + '</span>';
+}
+
+function renderPanel(rows) {
+  var container = document.getElementById('panelContainer');
+  container.innerHTML = '';
+  if (!rows || rows.length === 0) {
+    container.innerHTML =
+      '<div class="card text-center" style="font-weight:600;color:#6b7280;">Sin colaboradores activos hoy.</div>';
+    return;
+  }
+  rows.forEach(function (r) {
+    var card = document.createElement('div');
+    card.className = 'panel-card';
+
+    var mjs = (r.marcajes || []).map(function (m) {
+      return '<span style="font-size:12px; white-space:nowrap;">' + m.hora + '&nbsp;' + tipoBadge(m.tipo) + '</span>';
+    }).join(' ');
+
+    var tardChip = r.minTarde > 0
+      ? '<span class="tarde-chip">+' + r.minTarde + ' min</span>'
+      : '';
+
+    card.innerHTML =
+      '<div class="pc-header">' +
+        '<div class="pc-name">' + r.nombre + '</div>' +
+        '<div class="pc-sub">' +
+          (r.dni  ? 'DNI: ' + r.dni : '') +
+          (r.eid  ? (r.dni ? ' &middot; ' : '') + 'QR: ' + r.eid : '') +
+          (r.horaRef ? ' &middot; <strong>Entrada: ' + r.horaRef + '</strong>' : '') +
+        '</div>' +
+      '</div>' +
+      '<div class="pc-row">' +
+        '<span class="pc-label">Último estado</span>' +
+        '<span class="pc-val">' + tipoBadge(r.ultimoTipo) + tardChip + '</span>' +
+      '</div>' +
+      (mjs ? '<div class="pc-row"><span class="pc-label">Marcajes</span><span class="pc-val" style="gap:6px;">' + mjs + '</span></div>' : '');
+
+    container.appendChild(card);
+  });
+}
+
+function filtrarPanel() {
+  var q = document.getElementById('buscadorPanel').value.toLowerCase();
+  document.querySelectorAll('#panelContainer .panel-card').forEach(function (c) {
+    var n = c.querySelector('.pc-name').textContent.toLowerCase();
+    c.style.display = n.includes(q) ? 'block' : 'none';
+  });
+}
+
+// ============================================================
+// TARDANZAS
+// ============================================================
+(function () {
+  var hoy = new Date();
+  var p1  = new Date(hoy.getFullYear(), hoy.getMonth(), 1);
+  document.getElementById('tardDesde').value = p1.toISOString().split('T')[0];
+  document.getElementById('tardHasta').value = hoy.toISOString().split('T')[0];
+})();
+
+function mostrarStatusTard(texto, estilo) {
+  var a = document.getElementById('tardStatus');
+  a.style.display = 'flex';
+  a.innerHTML = '<div class="status-msg ' + estilo + '">' + texto + '</div>';
+  if (estilo !== 'loading') setTimeout(function () { a.style.display = 'none'; }, 3500);
+}
+
+function consultarTardanzas() {
+  var colab = document.getElementById('tardColab').value.trim();
+  var desde = document.getElementById('tardDesde').value;
+  var hasta = document.getElementById('tardHasta').value;
+  if (!desde || !hasta) { mostrarStatusTard('⚠️ Indica el rango de fechas', 'error'); return; }
+  if (desde > hasta)    { mostrarStatusTard('⚠️ La fecha inicial no puede ser mayor a la final', 'error'); return; }
+
+  var btn = document.getElementById('btnTard');
+  btn.disabled = true;
+  btn.textContent = '⏳ Consultando...';
+  document.getElementById('tardResumen').style.display = 'none';
+  document.getElementById('tardContainer').innerHTML   = '';
+  mostrarStatusTard('Cargando... 🚀', 'loading');
+
+  var url = API + '/tardanzas?sucursalNombre=' + encodeURIComponent(SUCURSAL) +
+            '&apiKey=' + API_KEY +
+            '&fechaDesde=' + desde +
+            '&fechaHasta=' + hasta +
+            (colab ? '&colaborador=' + encodeURIComponent(colab) : '');
+
+  fetch(url)
+    .then(function (r) { return r.json(); })
+    .then(function (data) {
+      btn.disabled = false;
+      btn.textContent = '🔍 Consultar';
+      document.getElementById('tardStatus').style.display = 'none';
+      if (!data.ok) { mostrarStatusTard('❌ ' + data.message, 'error'); return; }
+
+      var sel      = document.getElementById('tardColab');
+      var anterior = sel.value;
+      sel.innerHTML = '<option value="">— Todos —</option>';
+      (data.colaboradores || []).forEach(function (n) {
+        var o = document.createElement('option');
+        o.value = n; o.textContent = n;
+        if (n === anterior) o.selected = true;
+        sel.appendChild(o);
+      });
+
+      renderTardanzas(data.rows, data.totalMin, desde, hasta);
+    })
+    .catch(function () {
+      btn.disabled = false;
+      btn.textContent = '🔍 Consultar';
+      mostrarStatusTard('❌ Error de conexión', 'error');
+    });
+}
+
+function renderTardanzas(rows, totalMin, desde, hasta) {
+  var totalEl = document.getElementById('tardTotal');
+  totalEl.textContent = totalMin;
+  totalEl.className = 'tard-total-num' + (totalMin === 0 ? ' tard-total-cero' : '');
+
+  var d1 = desde.split('-').reverse().join('/');
+  var d2 = hasta.split('-').reverse().join('/');
+  document.getElementById('tardSub').textContent     = rows.length + ' registro' + (rows.length !== 1 ? 's' : '');
+  document.getElementById('tardPeriodo').textContent = d1 + ' – ' + d2;
+  document.getElementById('tardResumen').style.display = 'block';
+
+  var container = document.getElementById('tardContainer');
+  container.innerHTML = '';
+
+  if (!rows || rows.length === 0) {
+    container.innerHTML =
+      '<div class="card text-center" style="font-weight:600;color:#166534;background:#dcfce7;border:1px solid #bbf7d0;box-shadow:none;">✅ Sin tardanzas en el período</div>';
+    return;
+  }
+
+  rows.forEach(function (r) {
+    var bc = r.minTarde >= 30 ? 'tard-badge-alto' : r.minTarde >= 10 ? 'tard-badge-medio' : 'tard-badge-bajo';
+    var card = document.createElement('div');
+    card.className = 'panel-card';
+    card.innerHTML =
+      '<div class="pc-header">' +
+        '<div class="pc-name">' + r.nombre + '</div>' +
+        (r.horaRef ? '<div class="pc-sub">Hora esperada: <strong>' + r.horaRef + '</strong></div>' : '') +
+      '</div>' +
+      '<div class="pc-row"><span class="pc-label">📅 Fecha</span><span class="pc-val">' + r.fecha.split('-').reverse().join('/') + '</span></div>' +
+      '<div class="pc-row"><span class="pc-label">🕐 Llegó</span><span class="pc-val">' + r.hora + '</span></div>' +
+      '<div class="pc-row"><span class="pc-label">⏱ Tardanza</span><span class="pc-val"><span class="tard-badge ' + bc + '">' + r.minTarde + ' min</span></span></div>';
+    container.appendChild(card);
+  });
+}
+</script>
+</body>
+</html>
