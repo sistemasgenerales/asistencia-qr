@@ -234,13 +234,14 @@ input[type="text"]:focus, input[type="date"]:focus{ border-color:#2563eb; }
 // ⚠️  CAMBIAR ANTES DE PUBLICAR EN PRODUCCIÓN:
 // Local (pruebas en red LAN):  'http://192.168.18.109:3000/api/qr'
 // Producción (Vercel):         'https://TU-APP.vercel.app/api/qr'
-var API     = 'http://localhost:3000/api/qr';
+var API     = 'http://192.168.18.109:3000/api/qr';
 var API_KEY = 'c134a884f5188bdb0c4863475d956764';
 // ────────────────────────────────────────────────────────────
 
 // Estado de sesión — se completa DESPUÉS del login
-var SUCURSAL = '';   // viene del servidor según el alias
-var ALIAS    = '';
+var SUCURSAL          = '';   // sucursal principal (para registrar y mostrar en header)
+var SUCURSALES_PARAM  = '';   // puede ser "SUC_A|SUC_B|SUC_C" para panel y tardanzas
+var ALIAS             = '';
 
 // ============================================================
 // ESPEJO LOCAL — caché de colaboradores (respuesta instantánea)
@@ -309,9 +310,13 @@ function iniciarSesion() {
         return;
       }
 
-      // ✅ Login OK — el servidor nos dice la sucursal
-      SUCURSAL = data.sucursalNombre;
-      ALIAS    = data.alias || alias;
+      // ✅ Login OK — el servidor nos dice la(s) sucursal(es)
+      SUCURSAL         = data.sucursalNombre;
+      ALIAS            = data.alias || alias;
+      // Si tiene múltiples sucursales, usarlas unidas con "|" para panel y tardanzas
+      SUCURSALES_PARAM = (data.sucursalesNombres && data.sucursalesNombres.length > 1)
+        ? data.sucursalesNombres.join('|')
+        : data.sucursalNombre;
 
       // Actualizar header y sidebar con la sucursal del operador
       document.getElementById('topbarSucursal').textContent  = SUCURSAL;
@@ -523,7 +528,7 @@ function loadPanel() {
   container.innerHTML =
     '<div class="card text-center" style="color:#2563eb;border:1px solid #bfdbfe;background:#eff6ff;font-weight:600;">⏳ Cargando asistencia de hoy...</div>';
 
-  fetch(API + '/panel?sucursalNombre=' + encodeURIComponent(SUCURSAL) + '&apiKey=' + API_KEY)
+  fetch(API + '/panel?sucursalNombre=' + encodeURIComponent(SUCURSALES_PARAM) + '&apiKey=' + API_KEY)
     .then(function (r) { return r.json(); })
     .then(function (res) {
       if (!res.ok) {
@@ -626,7 +631,7 @@ function consultarTardanzas() {
   document.getElementById('tardContainer').innerHTML   = '';
   mostrarStatusTard('Cargando... 🚀', 'loading');
 
-  var url = API + '/tardanzas?sucursalNombre=' + encodeURIComponent(SUCURSAL) +
+  var url = API + '/tardanzas?sucursalNombre=' + encodeURIComponent(SUCURSALES_PARAM) +
             '&apiKey=' + API_KEY +
             '&fechaDesde=' + desde +
             '&fechaHasta=' + hasta +
