@@ -53,8 +53,8 @@ select{ width:100%; padding:14px; border-radius:12px; border:1px solid #d1d5db; 
 select:focus{ border-color:#2563eb; }
 button{ width:100%; padding:14px; border-radius:12px; border:none; margin-bottom:12px; font-size:16px; background:#111827; color:white; cursor:pointer; font-weight:700; transition:.1s; }
 button:active{ transform:scale(.96); background:#1f2937; }
-input[type="text"], input[type="date"]{ width:100%; padding:14px 16px; border-radius:12px; border:1px solid #d1d5db; margin-bottom:12px; font-size:16px; background:white; outline:none; color:#111827; }
-input[type="text"]:focus, input[type="date"]:focus{ border-color:#2563eb; }
+input[type="text"], input[type="date"], input[type="number"]{ width:100%; padding:14px 16px; border-radius:12px; border:1px solid #d1d5db; margin-bottom:12px; font-size:16px; background:white; outline:none; color:#111827; }
+input[type="text"]:focus, input[type="date"]:focus, input[type="number"]:focus{ border-color:#2563eb; }
 
 .btn-blue{ background:#2563eb; }
 .btn-blue:active{ background:#1d4ed8; transform:scale(.96); }
@@ -89,6 +89,34 @@ input[type="text"]:focus, input[type="date"]:focus{ border-color:#2563eb; }
 .badge-refrig   { background:#fef3c7; color:#92400e; padding:2px 8px; border-radius:20px; font-size:12px; font-weight:800; }
 .badge-sinmarcar{ background:#f3f4f6; color:#6b7280; padding:2px 8px; border-radius:20px; font-size:12px; font-weight:800; }
 .tarde-chip{ background:#fee2e2; color:#991b1b; padding:2px 8px; border-radius:20px; font-size:12px; font-weight:800; }
+
+/* ── TAREO (Asistencia Diaria desde el Panel) ── */
+.tareo-btn{ width:100%; padding:11px; margin:10px 0 0; font-size:14px; font-weight:800; border-radius:10px; background:#eef2ff; color:#3730a3; border:1.5px solid #c7d2fe; }
+.tareo-btn:active{ background:#e0e7ff; transform:scale(.98); }
+.tareo-btn.saved{ background:#dcfce7; color:#166534; border-color:#bbf7d0; }
+.tareo-form{ display:none; margin-top:12px; padding-top:12px; border-top:2px dashed #e5e7eb; }
+.tareo-form label{ display:block; text-align:left; font-size:11px; font-weight:800; color:#9ca3af; text-transform:uppercase; letter-spacing:.05em; margin-bottom:4px; }
+.tareo-form select, .tareo-form input{ margin-bottom:10px; padding:11px 12px; font-size:15px; }
+.tareo-form select{ text-align-last:left; }
+.tareo-save{ background:#166534; padding:12px; font-size:15px; }
+.tareo-save:active{ background:#14532d; }
+.tareo-cancel{ background:#f3f4f6; color:#4b5563; padding:10px; font-size:14px; margin-bottom:0; }
+.tareo-cancel:active{ background:#e5e7eb; }
+.t-badge{ padding:2px 9px; border-radius:20px; font-size:12px; font-weight:800; }
+.t-A { background:#dcfce7; color:#166534; }
+.t-DL{ background:#e5e7eb; color:#374151; }
+.t-F { background:#fee2e2; color:#991b1b; }
+.t-T { background:#fef3c7; color:#92400e; }
+.t-V { background:#ccfbf1; color:#115e59; }
+.t-DM{ background:#dbeafe; color:#1e40af; }
+.t-LF{ background:#e5e7eb; color:#374151; }
+.t-LP{ background:#f3e8ff; color:#6b21a8; }
+.t-S { background:#fecaca; color:#7f1d1d; }
+.t-PS{ background:#fce7f3; color:#9d174d; }
+.t-PC{ background:#cffafe; color:#155e75; }
+.t-none{ background:#f3f4f6; color:#9ca3af; }
+.tareo-legend{ background:white; border:1px solid #e5e7eb; border-radius:14px; padding:12px; margin-bottom:16px; width:100%; max-width:480px; display:flex; flex-wrap:wrap; gap:5px; justify-content:center; }
+.tareo-legend span{ font-size:10px; font-weight:800; padding:3px 7px; border-radius:20px; }
 
 /* ── TARDANZAS ── */
 .tard-label{ font-size:13px; font-weight:700; color:#6b7280; display:block; margin-bottom:4px; text-align:left; }
@@ -184,6 +212,21 @@ input[type="text"]:focus, input[type="date"]:focus{ border-color:#2563eb; }
     <!-- ─── PANEL HOY ─── -->
     <div id="viewPanel" style="display:none; width:100%; max-width:480px; margin:auto;">
       <button onclick="loadPanel()" class="btn-refresh">🔄 Cargar / Actualizar</button>
+
+      <div class="tareo-legend">
+        <span class="t-badge t-A">A: Asistió</span>
+        <span class="t-badge t-DL">DL: Día Libre</span>
+        <span class="t-badge t-F">F: Falta</span>
+        <span class="t-badge t-T">T: Tarde</span>
+        <span class="t-badge t-V">V: Vacaciones</span>
+        <span class="t-badge t-DM">DM: Desc. Médico</span>
+        <span class="t-badge t-LF">LF: Lic. Fallec.</span>
+        <span class="t-badge t-LP">LP: Lic. Patern.</span>
+        <span class="t-badge t-S">S: Suspensión</span>
+        <span class="t-badge t-PS">PS: Perm. Sin Goce</span>
+        <span class="t-badge t-PC">PC: Perm. Con Goce</span>
+      </div>
+
       <input type="text" id="buscadorPanel" class="search-bar"
              placeholder="🔍 Buscar colaborador..." oninput="filtrarPanel()">
       <div id="panelContainer" style="display:flex; flex-direction:column; align-items:center; width:100%;">
@@ -231,9 +274,6 @@ input[type="text"]:focus, input[type="date"]:focus{ border-color:#2563eb; }
 // ============================================================
 // ⚙️  CONFIGURACIÓN — solo cambiar si se mueve el backend
 // ============================================================
-// ⚠️  CAMBIAR ANTES DE PUBLICAR EN PRODUCCIÓN:
-// Local (pruebas en red LAN):  'http://192.168.18.109:3000/api/qr'
-// Producción (Vercel):         'https://TU-APP.vercel.app/api/qr'
 var API     = 'https://sistemaadministrativo.io/api/qr';
 var API_KEY = 'c134a884f5188bdb0c4863475d956764';
 // ────────────────────────────────────────────────────────────
@@ -242,6 +282,21 @@ var API_KEY = 'c134a884f5188bdb0c4863475d956764';
 var SUCURSAL          = '';   // sucursal principal (para registrar y mostrar en header)
 var SUCURSALES_PARAM  = '';   // puede ser "SUC_A|SUC_B|SUC_C" para panel y tardanzas
 var ALIAS             = '';
+
+// Códigos de tareo (mismos que Tareo › Asistencia Diaria en el sistema)
+var TAREO_OPCIONES = [
+  ['A',  'A — Asistió'],
+  ['DL', 'DL — Día Libre'],
+  ['F',  'F — Falta'],
+  ['T',  'T — Tarde'],
+  ['V',  'V — Vacaciones'],
+  ['DM', 'DM — Descanso Médico'],
+  ['LF', 'LF — Lic. Fallecimiento'],
+  ['LP', 'LP — Lic. Paternidad'],
+  ['S',  'S — Suspensión'],
+  ['PS', 'PS — Permiso Sin Goce'],
+  ['PC', 'PC — Permiso Con Goce']
+];
 
 // ============================================================
 // ESPEJO LOCAL — caché de colaboradores (respuesta instantánea)
@@ -310,20 +365,16 @@ function iniciarSesion() {
         return;
       }
 
-      // ✅ Login OK — el servidor nos dice la(s) sucursal(es)
       SUCURSAL         = data.sucursalNombre;
       ALIAS            = data.alias || alias;
-      // Si tiene múltiples sucursales, usarlas unidas con "|" para panel y tardanzas
       SUCURSALES_PARAM = (data.sucursalesNombres && data.sucursalesNombres.length > 1)
         ? data.sucursalesNombres.join('|')
         : data.sucursalNombre;
 
-      // Actualizar header y sidebar con la sucursal del operador
       document.getElementById('topbarSucursal').textContent  = SUCURSAL;
       document.getElementById('sidebarSucursal').textContent = SUCURSAL;
       document.getElementById('sidebarAlias').textContent    = '👤 ' + ALIAS;
 
-      // Mostrar app y limpiar campos
       document.getElementById('loginWrap').style.display = 'none';
       document.getElementById('app').style.display       = 'block';
       document.getElementById('pinInput').value   = '';
@@ -451,14 +502,13 @@ function registrarManual() {
 }
 
 // ============================================================
-// REGISTRO
+// REGISTRO DE MARCAJE
 // ============================================================
 function registrar(valor, origen, obs) {
   var tipo = document.getElementById('tipo').value;
   if (!tipo)  { playAudio('error'); mostrarMsg('⚠️ Selecciona el tipo de marcaje primero', 'error'); return; }
   if (!valor) { playAudio('error'); mostrarMsg('⚠️ Ingresa el QR o DNI del colaborador', 'error'); return; }
 
-  // Buscar en caché local para respuesta instantánea
   var emp = origen === 'Manual'
     ? dbEspejo.byDoc[valor.replace(/\D/g, '').trim()]
     : dbEspejo.byEid[valor.trim()];
@@ -520,8 +570,10 @@ function enviarAlServidor(valor, origen, obs, tipo, dupKey) {
 }
 
 // ============================================================
-// PANEL HOY
+// PANEL HOY  (+ registro de TAREO — Asistencia Diaria)
 // ============================================================
+var PANEL_ROWS = [];   // filas cargadas, para prellenar los formularios de tareo
+
 function loadPanel() {
   var container = document.getElementById('panelContainer');
   document.getElementById('buscadorPanel').value = '';
@@ -536,7 +588,8 @@ function loadPanel() {
           '<div class="card text-center" style="color:#991b1b;font-weight:700;">❌ ' + (res.message || 'Error') + '</div>';
         return;
       }
-      renderPanel(res.rows);
+      PANEL_ROWS = res.rows || [];
+      renderPanel(PANEL_ROWS);
     })
     .catch(function () {
       container.innerHTML =
@@ -553,6 +606,15 @@ function tipoBadge(tipo) {
   return '<span class="badge-refrig">' + tipo + '</span>';
 }
 
+function tareoBadge(t) {
+  if (!t) return '<span class="t-badge t-none">Sin registrar</span>';
+  return '<span class="t-badge t-' + t + '">' + t + '</span>';
+}
+
+function esc(s) {
+  return String(s == null ? '' : s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
 function renderPanel(rows) {
   var container = document.getElementById('panelContainer');
   container.innerHTML = '';
@@ -561,35 +623,154 @@ function renderPanel(rows) {
       '<div class="card text-center" style="font-weight:600;color:#6b7280;">Sin colaboradores activos hoy.</div>';
     return;
   }
+
   rows.forEach(function (r) {
+    var id   = r.colaboradorId;
     var card = document.createElement('div');
     card.className = 'panel-card';
+    card.setAttribute('data-id', id);
 
     var mjs = (r.marcajes || []).map(function (m) {
       return '<span style="font-size:12px; white-space:nowrap;">' + m.hora + '&nbsp;' + tipoBadge(m.tipo) + '</span>';
     }).join(' ');
 
-    var tardChip = r.minTarde > 0
-      ? '<span class="tarde-chip">+' + r.minTarde + ' min</span>'
-      : '';
+    var tardChip = r.minTarde > 0 ? '<span class="tarde-chip">+' + r.minTarde + ' min</span>' : '';
+
+    // Opciones del select de tareo (marca la ya guardada)
+    var opts = '<option value="">— Elegir tareo —</option>';
+    TAREO_OPCIONES.forEach(function (o) {
+      opts += '<option value="' + o[0] + '"' + (r.tareo === o[0] ? ' selected' : '') + '>' + o[1] + '</option>';
+    });
+
+    // Minutos: si no hay tareo guardado, se pre-llena con la tardanza detectada por el QR
+    var minVal = (r.tareo ? (r.tareoMin || 0) : (r.minTarde || 0));
 
     card.innerHTML =
       '<div class="pc-header">' +
-        '<div class="pc-name">' + r.nombre + '</div>' +
+        '<div class="pc-name">' + esc(r.nombre) + '</div>' +
         '<div class="pc-sub">' +
-          (r.dni  ? 'DNI: ' + r.dni : '') +
-          (r.eid  ? (r.dni ? ' &middot; ' : '') + 'QR: ' + r.eid : '') +
-          (r.horaRef ? ' &middot; <strong>Entrada: ' + r.horaRef + '</strong>' : '') +
+          (r.dni  ? 'DNI: ' + esc(r.dni) : '') +
+          (r.eid  ? (r.dni ? ' &middot; ' : '') + 'QR: ' + esc(r.eid) : '') +
+          (r.horaRef ? ' &middot; <strong>Entrada: ' + esc(r.horaRef) + '</strong>' : '') +
         '</div>' +
       '</div>' +
+
       '<div class="pc-row">' +
         '<span class="pc-label">Último estado</span>' +
         '<span class="pc-val">' + tipoBadge(r.ultimoTipo) + tardChip + '</span>' +
       '</div>' +
-      (mjs ? '<div class="pc-row"><span class="pc-label">Marcajes</span><span class="pc-val" style="gap:6px;">' + mjs + '</span></div>' : '');
+
+      (mjs ? '<div class="pc-row"><span class="pc-label">Marcajes</span><span class="pc-val" style="gap:6px;">' + mjs + '</span></div>' : '') +
+
+      '<div class="pc-row">' +
+        '<span class="pc-label">Tareo del día</span>' +
+        '<span class="pc-val" id="tb_' + id + '">' + tareoBadge(r.tareo) + '</span>' +
+      '</div>' +
+
+      '<button class="tareo-btn' + (r.tareo ? ' saved' : '') + '" id="tbtn_' + id + '" onclick="toggleTareo(\'' + id + '\')">' +
+        (r.tareo ? '✏️ Editar tareo' : '📝 Registrar tareo') +
+      '</button>' +
+
+      '<div class="tareo-form" id="tf_' + id + '">' +
+        '<label>N. Tareo</label>' +
+        '<select id="tt_' + id + '">' + opts + '</select>' +
+
+        '<label>N. Minutos (tardanza)</label>' +
+        '<input type="number" id="tm_' + id + '" min="0" inputmode="numeric" value="' + minVal + '">' +
+
+        '<label>Observación</label>' +
+        '<input type="text" id="to_' + id + '" placeholder="Opcional" value="' + esc(r.tareoObs || '') + '">' +
+
+        '<label>Sanción por falta (S/)</label>' +
+        '<input type="number" id="ts_' + id + '" step="0.01" min="0" placeholder="Opcional" value="' +
+          (r.tareoSancion != null ? r.tareoSancion : '') + '">' +
+
+        '<div id="tmsg_' + id + '" class="status-area" style="display:none;"></div>' +
+
+        '<button class="tareo-save" onclick="guardarTareo(\'' + id + '\')">💾 Guardar tareo</button>' +
+        '<button class="tareo-cancel" onclick="toggleTareo(\'' + id + '\')">Cancelar</button>' +
+      '</div>';
 
     container.appendChild(card);
   });
+}
+
+function toggleTareo(id) {
+  var f = document.getElementById('tf_' + id);
+  if (!f) return;
+  f.style.display = (f.style.display === 'block') ? 'none' : 'block';
+}
+
+function msgTareo(id, texto, estilo) {
+  var a = document.getElementById('tmsg_' + id);
+  if (!a) return;
+  a.style.display = 'flex';
+  a.innerHTML = '<div class="status-msg ' + estilo + '">' + texto + '</div>';
+  if (estilo !== 'loading') setTimeout(function () { a.style.display = 'none'; }, 3000);
+}
+
+function guardarTareo(id) {
+  var tareo = document.getElementById('tt_' + id).value;
+  var min   = document.getElementById('tm_' + id).value;
+  var obs   = document.getElementById('to_' + id).value;
+  var sanc  = document.getElementById('ts_' + id).value;
+
+  if (!tareo) { playAudio('error'); msgTareo(id, '⚠️ Elige el tareo', 'error'); return; }
+
+  msgTareo(id, 'Guardando... 🚀', 'loading');
+
+  var hoy = new Date();
+  var fecha = hoy.getFullYear() + '-' +
+              String(hoy.getMonth() + 1).padStart(2, '0') + '-' +
+              String(hoy.getDate()).padStart(2, '0');
+
+  fetch(API + '/tareo', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      apiKey:        API_KEY,
+      colaboradorId: id,
+      fecha:         fecha,
+      tareo:         tareo,
+      minTarde:      Number(min || 0),
+      observacion:   obs,
+      sancionFalta:  sanc === '' ? null : Number(sanc),
+      alias:         ALIAS
+    })
+  })
+    .then(function (r) { return r.json(); })
+    .then(function (data) {
+      if (!data.ok) {
+        playAudio('error');
+        msgTareo(id, '❌ ' + (data.message || 'Error al guardar'), 'error');
+        return;
+      }
+      playAudio('exito');
+      msgTareo(id, '✔ Tareo guardado', 'success');
+
+      // Refleja el cambio en la tarjeta sin recargar todo
+      document.getElementById('tb_' + id).innerHTML = tareoBadge(tareo);
+      var btn = document.getElementById('tbtn_' + id);
+      btn.textContent = '✏️ Editar tareo';
+      btn.classList.add('saved');
+
+      // Actualiza la caché local
+      for (var i = 0; i < PANEL_ROWS.length; i++) {
+        if (PANEL_ROWS[i].colaboradorId === id) {
+          PANEL_ROWS[i].tareo        = tareo;
+          PANEL_ROWS[i].tareoMin     = Number(min || 0);
+          PANEL_ROWS[i].tareoObs     = obs;
+          PANEL_ROWS[i].tareoSancion = sanc === '' ? null : Number(sanc);
+          break;
+        }
+      }
+
+      setTimeout(function () { toggleTareo(id); }, 800);
+    })
+    .catch(function () {
+      playAudio('error');
+      msgTareo(id, '❌ Error de conexión', 'error');
+    });
 }
 
 function filtrarPanel() {
