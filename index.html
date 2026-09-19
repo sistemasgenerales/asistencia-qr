@@ -117,6 +117,11 @@ input[type="text"]:focus, input[type="date"]:focus, input[type="number"]:focus{ 
 .t-none{ background:#f3f4f6; color:#9ca3af; }
 .tareo-legend{ background:white; border:1px solid #e5e7eb; border-radius:14px; padding:12px; margin-bottom:16px; width:100%; max-width:480px; display:flex; flex-wrap:wrap; gap:5px; justify-content:center; }
 .tareo-legend span{ font-size:10px; font-weight:800; padding:3px 7px; border-radius:20px; }
+.panel-lock{ background:#fff7ed; border:1.5px solid #fed7aa; color:#9a3412; border-radius:16px; padding:22px; text-align:center; font-weight:700; width:100%; max-width:480px; }
+.panel-lock .lock-ico{ font-size:34px; margin-bottom:6px; }
+.panel-lock p{ font-weight:600; font-size:14px; color:#7c2d12; margin:6px 0 14px; line-height:1.4; }
+.panel-scope{ font-size:12px; font-weight:700; color:#166534; background:#dcfce7; border:1px solid #bbf7d0; border-radius:10px; padding:8px 10px; margin-bottom:12px; width:100%; max-width:480px; text-align:center; }
+.nav-lock{ font-size:13px; margin-left:4px; }
 
 /* ── TARDANZAS ── */
 .tard-label{ font-size:13px; font-weight:700; color:#6b7280; display:block; margin-bottom:4px; text-align:left; }
@@ -179,7 +184,7 @@ input[type="text"]:focus, input[type="date"]:focus, input[type="number"]:focus{ 
     <div class="sideHeader"    id="sidebarSucursal"></div>
     <div class="sideSubHeader" id="sidebarAlias"></div>
     <button id="btnNavQR"        class="sideItem active" onclick="switchView('qr')">📸 Escáner QR</button>
-    <button id="btnNavPanel"     class="sideItem"        onclick="switchView('panel')">📊 Panel Hoy</button>
+    <button id="btnNavPanel"     class="sideItem"        onclick="switchView('panel')">📊 Panel Hoy<span id="navPanelLock" class="nav-lock"></span></button>
     <button id="btnNavTardanzas" class="sideItem"        onclick="switchView('tardanzas')">⏰ Tardanzas</button>
     <div style="flex-grow:1;"></div>
     <button class="sideItem" style="color:#991b1b;" onclick="cerrarSesion()">🚪 Cerrar Sesión</button>
@@ -274,7 +279,10 @@ input[type="text"]:focus, input[type="date"]:focus, input[type="number"]:focus{ 
 // ============================================================
 // ⚙️  CONFIGURACIÓN — solo cambiar si se mueve el backend
 // ============================================================
-var API     = 'https://sistemaadministrativo.io/api/qr';
+// Abierto desde la propia PC (http://localhost:…) apunta al sistema LOCAL, para probar
+// antes de publicar. Desde GitHub Pages siempre va a producción.
+var ES_LOCAL = location.hostname === 'localhost' || location.hostname === '127.0.0.1';
+var API     = ES_LOCAL ? 'http://localhost:3000/api/qr' : 'https://sistemaadministrativo.io/api/qr';
 var API_KEY = 'c134a884f5188bdb0c4863475d956764';
 // ────────────────────────────────────────────────────────────
 
@@ -282,6 +290,11 @@ var API_KEY = 'c134a884f5188bdb0c4863475d956764';
 var SUCURSAL          = '';   // sucursal principal (para registrar y mostrar en header)
 var SUCURSALES_PARAM  = '';   // puede ser "SUC_A|SUC_B|SUC_C" para panel y tardanzas
 var ALIAS             = '';
+// Credencial firmada que entrega el servidor al ingresar. El Panel Hoy la manda en cada
+// pedido: sin ella (o vencida) el servidor no deja ver ni cambiar el tareo.
+var TOKEN             = '';
+// ¿RRHH tiene habilitado el Panel Hoy en alguna de mis sucursales? (Autorizaciones)
+var PANEL_HABILITADO  = false;
 
 // Códigos de tareo (mismos que Tareo › Asistencia Diaria en el sistema)
 var TAREO_OPCIONES = [
@@ -367,6 +380,8 @@ function iniciarSesion() {
 
       SUCURSAL         = data.sucursalNombre;
       ALIAS            = data.alias || alias;
+      TOKEN            = data.token || '';
+      marcarPanel(!!data.panelHabilitado);
       SUCURSALES_PARAM = (data.sucursalesNombres && data.sucursalesNombres.length > 1)
         ? data.sucursalesNombres.join('|')
         : data.sucursalNombre;
@@ -392,8 +407,17 @@ function iniciarSesion() {
 
 function cerrarSesion() {
   if (!confirm('¿Cerrar sesión?')) return;
+  salirSinPreguntar();
+}
+
+// Cierra la sesión sin confirmar (también cuando el servidor dice que la credencial venció).
+function salirSinPreguntar(mensaje) {
   SUCURSAL    = '';
   ALIAS       = '';
+  TOKEN       = '';
+  PANEL_HABILITADO = false;
+  PANEL_ROWS  = [];
+  document.getElementById('panelContainer').innerHTML = '';
   dbEspejo    = { byEid: {}, byDoc: {} };
   marcLocales = {};
   document.getElementById('app').style.display       = 'none';
@@ -401,6 +425,39 @@ function cerrarSesion() {
   toggleSidebar(true);
   detenerQR();
   switchView('qr');
+  if (mensaje) {
+    var errEl = document.getElementById('loginError');
+    errEl.textContent = '🔒 ' + mensaje;
+    errEl.style.display = 'block';
+  }
+}
+
+// El candado del menú refleja lo último que dijo el servidor.
+function marcarPanel(habilitado) {
+  PANEL_HABILITADO = habilitado;
+  document.getElementById('navPanelLock').textContent = habilitado ? '' : '🔒';
+}
+
+// Pedido autenticado al Panel Hoy: la credencial va en el header.
+function authHeaders(extra) {
+  var h = extra || {};
+  h['Authorization'] = 'Bearer ' + TOKEN;
+  return h;
+}
+
+// Respuestas que no son un error "normal": sesión vencida o panel deshabilitado por RRHH.
+function manejarBloqueo(res) {
+  if (res && res.sesionVencida) { salirSinPreguntar(res.message || 'Tu sesión venció. Vuelve a ingresar.'); return true; }
+  if (res && res.panelDeshabilitado) { marcarPanel(false); mostrarPanelBloqueado(res.message); return true; }
+  return false;
+}
+
+function mostrarPanelBloqueado(mensaje) {
+  PANEL_ROWS = [];
+  document.getElementById('panelContainer').innerHTML =
+    '<div class="panel-lock"><div class="lock-ico">🔒</div>Panel Hoy deshabilitado' +
+    '<p>' + esc(mensaje || 'RRHH no ha habilitado el Panel Hoy para tu sucursal.') + '</p>' +
+    '<button class="btn-blue" style="margin:0;" onclick="loadPanel()">🔄 Volver a consultar</button></div>';
 }
 
 // ============================================================
@@ -432,6 +489,7 @@ function switchView(v) {
     document.getElementById('btnNavPanel').classList.add('active');
     document.getElementById('topbarTitle').textContent   = 'Panel Hoy';
     detenerQR();
+    loadPanel();
   } else if (v === 'tardanzas') {
     document.getElementById('viewTardanzas').style.display   = 'block';
     document.getElementById('btnNavTardanzas').classList.add('active');
@@ -549,7 +607,13 @@ function enviarAlServidor(valor, origen, obs, tipo, dupKey) {
     .then(function (r) { return r.json(); })
     .then(function (data) {
       if (data.ok) {
-        if (dupKey === null) {
+        if (data.aviso) {
+          // Quedó registrado, pero figura como cesado: se avisa al operador (lo ve RRHH en Tareo).
+          playAudio('error');
+          mostrarMsg('⚠️ REGISTRADO CON OBSERVACIÓN<br>' + esc(data.nombre) + '<br><span style="font-weight:600;font-size:13px">' + esc(data.aviso) + '</span>', 'error');
+          document.getElementById('dniManual').value   = '';
+          document.getElementById('observacion').value = '';
+        } else if (dupKey === null) {
           playAudio('exito');
           mostrarMsg('✔ REGISTRADO<br>' + data.nombre, 'success');
           document.getElementById('dniManual').value   = '';
@@ -580,16 +644,19 @@ function loadPanel() {
   container.innerHTML =
     '<div class="card text-center" style="color:#2563eb;border:1px solid #bfdbfe;background:#eff6ff;font-weight:600;">⏳ Cargando asistencia de hoy...</div>';
 
-  fetch(API + '/panel?sucursalNombre=' + encodeURIComponent(SUCURSALES_PARAM) + '&apiKey=' + API_KEY)
+  fetch(API + '/panel?sucursalNombre=' + encodeURIComponent(SUCURSALES_PARAM) + '&apiKey=' + API_KEY,
+        { headers: authHeaders() })
     .then(function (r) { return r.json(); })
     .then(function (res) {
+      if (manejarBloqueo(res)) return;
       if (!res.ok) {
         container.innerHTML =
           '<div class="card text-center" style="color:#991b1b;font-weight:700;">❌ ' + (res.message || 'Error') + '</div>';
         return;
       }
+      marcarPanel(true);
       PANEL_ROWS = res.rows || [];
-      renderPanel(PANEL_ROWS);
+      renderPanel(PANEL_ROWS, res.panelSucursales || []);
     })
     .catch(function () {
       container.innerHTML =
@@ -615,12 +682,18 @@ function esc(s) {
   return String(s == null ? '' : s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
 
-function renderPanel(rows) {
+function renderPanel(rows, habilitadas) {
   var container = document.getElementById('panelContainer');
   container.innerHTML = '';
+  if (habilitadas && habilitadas.length) {
+    var scope = document.createElement('div');
+    scope.className = 'panel-scope';
+    scope.textContent = '🔓 Habilitado por RRHH: ' + habilitadas.join(' · ');
+    container.appendChild(scope);
+  }
   if (!rows || rows.length === 0) {
-    container.innerHTML =
-      '<div class="card text-center" style="font-weight:600;color:#6b7280;">Sin colaboradores activos hoy.</div>';
+    container.insertAdjacentHTML('beforeend',
+      '<div class="card text-center" style="font-weight:600;color:#6b7280;">Sin colaboradores activos hoy.</div>');
     return;
   }
 
@@ -675,15 +748,11 @@ function renderPanel(rows) {
         '<label>N. Tareo</label>' +
         '<select id="tt_' + id + '">' + opts + '</select>' +
 
-        '<label>N. Minutos (tardanza)</label>' +
+        '<label>N. Minutos (tardanza) — obligatorio si es T</label>' +
         '<input type="number" id="tm_' + id + '" min="0" inputmode="numeric" value="' + minVal + '">' +
 
         '<label>Observación</label>' +
         '<input type="text" id="to_' + id + '" placeholder="Opcional" value="' + esc(r.tareoObs || '') + '">' +
-
-        '<label>Sanción por falta (S/)</label>' +
-        '<input type="number" id="ts_' + id + '" step="0.01" min="0" placeholder="Opcional" value="' +
-          (r.tareoSancion != null ? r.tareoSancion : '') + '">' +
 
         '<div id="tmsg_' + id + '" class="status-area" style="display:none;"></div>' +
 
@@ -713,9 +782,12 @@ function guardarTareo(id) {
   var tareo = document.getElementById('tt_' + id).value;
   var min   = document.getElementById('tm_' + id).value;
   var obs   = document.getElementById('to_' + id).value;
-  var sanc  = document.getElementById('ts_' + id).value;
 
   if (!tareo) { playAudio('error'); msgTareo(id, '⚠️ Elige el tareo', 'error'); return; }
+  // Una T sin minutos no vale: la tardanza se cobra por minuto (el servidor también lo exige).
+  if (tareo === 'T' && !(Number(min) >= 1)) {
+    playAudio('error'); msgTareo(id, '⚠️ Para una T indica los minutos de tardanza (1 o más)', 'error'); return;
+  }
 
   msgTareo(id, 'Guardando... 🚀', 'loading');
 
@@ -726,20 +798,19 @@ function guardarTareo(id) {
 
   fetch(API + '/tareo', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: authHeaders({ 'Content-Type': 'application/json' }),
     body: JSON.stringify({
       apiKey:        API_KEY,
       colaboradorId: id,
       fecha:         fecha,
       tareo:         tareo,
       minTarde:      Number(min || 0),
-      observacion:   obs,
-      sancionFalta:  sanc === '' ? null : Number(sanc),
-      alias:         ALIAS
+      observacion:   obs
     })
   })
     .then(function (r) { return r.json(); })
     .then(function (data) {
+      if (manejarBloqueo(data)) { playAudio('error'); return; }
       if (!data.ok) {
         playAudio('error');
         msgTareo(id, '❌ ' + (data.message || 'Error al guardar'), 'error');
@@ -760,7 +831,6 @@ function guardarTareo(id) {
           PANEL_ROWS[i].tareo        = tareo;
           PANEL_ROWS[i].tareoMin     = Number(min || 0);
           PANEL_ROWS[i].tareoObs     = obs;
-          PANEL_ROWS[i].tareoSancion = sanc === '' ? null : Number(sanc);
           break;
         }
       }
