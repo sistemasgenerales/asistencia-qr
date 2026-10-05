@@ -111,6 +111,7 @@ input[type="text"]:focus, input[type="date"]:focus, input[type="number"]:focus{ 
 .t-DM{ background:#dbeafe; color:#1e40af; }
 .t-LF{ background:#e5e7eb; color:#374151; }
 .t-LP{ background:#f3e8ff; color:#6b21a8; }
+.t-LM{ background:#fbcfe8; color:#831843; }
 .t-S { background:#fecaca; color:#7f1d1d; }
 .t-PS{ background:#fce7f3; color:#9d174d; }
 .t-PC{ background:#cffafe; color:#155e75; }
@@ -210,7 +211,7 @@ input[type="text"]:focus, input[type="date"]:focus, input[type="number"]:focus{ 
         <input type="text" id="dniManual" placeholder="Ingresar DNI" inputmode="numeric"
                onkeydown="if(event.key==='Enter')registrarManual()">
         <input type="text" id="observacion" placeholder="Observación (opcional)">
-        <button onclick="registrarManual()">Registrar con DNI</button>
+        <button onclick="registrarManual()">Registrar Manual</button>
       </div>
     </div>
 
@@ -227,6 +228,7 @@ input[type="text"]:focus, input[type="date"]:focus, input[type="number"]:focus{ 
         <span class="t-badge t-DM">DM: Desc. Médico</span>
         <span class="t-badge t-LF">LF: Lic. Fallec.</span>
         <span class="t-badge t-LP">LP: Lic. Patern.</span>
+        <span class="t-badge t-LM">LM: Lic. Matern.</span>
         <span class="t-badge t-S">S: Suspensión</span>
         <span class="t-badge t-PS">PS: Perm. Sin Goce</span>
         <span class="t-badge t-PC">PC: Perm. Con Goce</span>
@@ -306,6 +308,7 @@ var TAREO_OPCIONES = [
   ['DM', 'DM — Descanso Médico'],
   ['LF', 'LF — Lic. Fallecimiento'],
   ['LP', 'LP — Lic. Paternidad'],
+  ['LM', 'LM — Lic. Maternidad'],
   ['S',  'S — Suspensión'],
   ['PS', 'PS — Permiso Sin Goce'],
   ['PC', 'PC — Permiso Con Goce']
