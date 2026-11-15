@@ -315,6 +315,8 @@ var TAREO_OPCIONES = [
   ['Fe', 'Fe — Feriado'],
   ['Cu', 'Cu — Cumpleaños']
 ];
+// Su DÍA LIBRE en Horarios: solo DL o una licencia (la misma lista que el sistema, TAREO_EN_DIA_LIBRE).
+var TAREO_EN_DIA_LIBRE = ['DL', 'V', 'DM', 'LF', 'LP', 'LM', 'S'];
 
 // ============================================================
 // ESPEJO LOCAL — caché de colaboradores (respuesta instantánea)
@@ -627,7 +629,9 @@ function enviarAlServidor(valor, origen, obs, tipo, dupKey) {
       } else {
         if (dupKey) delete marcLocales[dupKey];
         playAudio('error');
-        mostrarMsg('❌ ' + (data.message || 'Error al registrar'), 'error');
+        // Su día libre en Horarios: la entrada no se registra.
+        if (data.diaLibre) mostrarMsg('🌙 DÍA LIBRE<br>' + esc(data.nombre || '') + '<br><span style="font-weight:600;font-size:13px">Hoy es su día libre: no se registra su entrada.</span>', 'error');
+        else mostrarMsg('❌ ' + (data.message || 'Error al registrar'), 'error');
       }
     })
     .catch(function () {
@@ -717,6 +721,8 @@ function renderPanel(rows, habilitadas) {
     // Opciones del select de tareo (marca la ya guardada)
     var opts = '<option value="">— Elegir tareo —</option>';
     TAREO_OPCIONES.forEach(function (o) {
+      // En su día libre, solo DL o una licencia (lo ya guardado se sigue mostrando).
+      if (r.diaLibre && TAREO_EN_DIA_LIBRE.indexOf(o[0]) < 0 && r.tareo !== o[0]) return;
       opts += '<option value="' + o[0] + '"' + (r.tareo === o[0] ? ' selected' : '') + '>' + o[1] + '</option>';
     });
 
@@ -729,7 +735,8 @@ function renderPanel(rows, habilitadas) {
         '<div class="pc-sub">' +
           (r.dni  ? 'DNI: ' + esc(r.dni) : '') +
           (r.eid  ? (r.dni ? ' &middot; ' : '') + 'QR: ' + esc(r.eid) : '') +
-          (r.horaRef ? ' &middot; <strong>Entrada: ' + esc(r.horaRef) + '</strong>' : '') +
+          (r.diaLibre ? ' &middot; <strong style="color:#6d28d9">🌙 DÍA LIBRE</strong>'
+            : r.horaRef ? ' &middot; <strong>Entrada: ' + esc(r.horaRef) + '</strong>' : '') +
         '</div>' +
       '</div>' +
 
