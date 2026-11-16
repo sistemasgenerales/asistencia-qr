@@ -98,6 +98,9 @@ input[type="text"]:focus, input[type="date"]:focus, input[type="number"]:focus{ 
 .tareo-form label{ display:block; text-align:left; font-size:11px; font-weight:800; color:#9ca3af; text-transform:uppercase; letter-spacing:.05em; margin-bottom:4px; }
 .tareo-form select, .tareo-form input{ margin-bottom:10px; padding:11px 12px; font-size:15px; }
 .tareo-form select{ text-align-last:left; }
+.tareo-hint{ margin:-6px 0 10px; text-align:left; font-size:12px; font-weight:700; color:#6b7280; }
+.tareo-hint.tarde{ color:#c2410c; }
+.tareo-hint.ok{ color:#15803d; }
 .tareo-save{ background:#166534; padding:12px; font-size:15px; }
 .tareo-save:active{ background:#14532d; }
 .tareo-cancel{ background:#f3f4f6; color:#4b5563; padding:10px; font-size:14px; margin-bottom:0; }
@@ -631,6 +634,8 @@ function enviarAlServidor(valor, origen, obs, tipo, dupKey) {
         playAudio('error');
         // Su día libre en Horarios: la entrada no se registra.
         if (data.diaLibre) mostrarMsg('🌙 DÍA LIBRE<br>' + esc(data.nombre || '') + '<br><span style="font-weight:600;font-size:13px">Hoy es su día libre: no se registra su entrada.</span>', 'error');
+        // Fuera de su contrato (después de su cese o traslado, antes de su ingreso): no se registra (2026-11-16).
+        else if (data.bloqueado) mostrarMsg('🔒 BLOQUEADO<br>' + esc(data.nombre || '') + '<br><span style="font-weight:600;font-size:13px">' + esc(data.message || 'Fuera de su contrato: no se registra.') + '</span>', 'error');
         else mostrarMsg('❌ ' + (data.message || 'Error al registrar'), 'error');
       }
     })
@@ -728,6 +733,9 @@ function renderPanel(rows, habilitadas) {
 
     // Minutos: si no hay tareo guardado, se pre-llena con la tardanza detectada por el QR
     var minVal = (r.tareo ? (r.tareoMin || 0) : (r.minTarde || 0));
+    // La hora: la guardada; si no, la de su marca de ENTRADA del QR (2026-11-16).
+    var entradaQR = (r.marcajes || []).filter(function (m) { return m.tipo === 'ENTRADA'; })[0];
+    var horaVal = String(r.tareoHora || (r.tareo ? '' : (entradaQR ? entradaQR.hora : '')) || '').slice(0, 5);
 
     card.innerHTML =
       '<div class="pc-header">' +
@@ -757,6 +765,11 @@ function renderPanel(rows, habilitadas) {
       '</button>' +
 
       '<div class="tareo-form" id="tf_' + id + '">' +
+        // PRIMERO LA HORA (2026-11-16): con su horario de entrada pone A (a su hora o antes) o T con los minutos.
+        (r.diaLibre ? '' :
+          '<label>Hora de entrada</label>' +
+          '<input type="time" id="th_' + id + '" value="' + esc(horaVal) + '" oninput="horaTareo(\'' + id + '\')">' +
+          '<div class="tareo-hint" id="thint_' + id + '">' + (r.horaRef ? 'Su entrada: ' + esc(r.horaRef) + ' · escribe la hora y se pone A o T' : '') + '</div>') +
         '<label>N. Tareo</label>' +
         '<select id="tt_' + id + '">' + opts + '</select>' +
 
@@ -774,6 +787,33 @@ function renderPanel(rows, habilitadas) {
 
     container.appendChild(card);
   });
+}
+
+// LA HORA DECIDE A O T (2026-11-16): la misma cuenta que el sistema (lib/tareo-por-hora): a su hora de entrada o antes, A; después,
+// T con los minutos. Al guardar, el servidor la vuelve a hacer con su horario de Horarios (la que vale).
+function aMinutos(h) {
+  var p = String(h || '').split(':');
+  return (Number(p[0]) || 0) * 60 + (Number(p[1]) || 0);
+}
+function filaPanel(id) {
+  for (var i = 0; i < PANEL_ROWS.length; i++) if (PANEL_ROWS[i].colaboradorId === id) return PANEL_ROWS[i];
+  return null;
+}
+function horaTareo(id) {
+  var hora = document.getElementById('th_' + id).value;
+  var r = filaPanel(id);
+  var hint = document.getElementById('thint_' + id);
+  if (!r || !r.horaRef || !/^\d{1,2}:\d{2}/.test(hora)) {
+    if (hint) { hint.className = 'tareo-hint'; hint.textContent = r && r.horaRef ? 'Su entrada: ' + r.horaRef : ''; }
+    return;
+  }
+  var min = Math.max(0, aMinutos(hora) - aMinutos(r.horaRef));
+  document.getElementById('tt_' + id).value = min > 0 ? 'T' : 'A';
+  document.getElementById('tm_' + id).value = min;
+  if (hint) {
+    hint.className = 'tareo-hint ' + (min > 0 ? 'tarde' : 'ok');
+    hint.textContent = 'Su entrada: ' + r.horaRef + (min > 0 ? ' · llegó ' + min + ' min tarde → T' : ' · a su hora → A');
+  }
 }
 
 function toggleTareo(id) {
@@ -794,10 +834,14 @@ function guardarTareo(id) {
   var tareo = document.getElementById('tt_' + id).value;
   var min   = document.getElementById('tm_' + id).value;
   var obs   = document.getElementById('to_' + id).value;
+  var hEl   = document.getElementById('th_' + id);
+  var hora  = hEl ? hEl.value : '';
+  // Con la hora y una A o una T, el servidor decide cuál y los minutos con su horario.
+  var porHora = !!hora && (tareo === 'A' || tareo === 'T');
 
   if (!tareo) { playAudio('error'); msgTareo(id, '⚠️ Elige el tareo', 'error'); return; }
   // Una T sin minutos no vale: la tardanza se cobra por minuto (el servidor también lo exige).
-  if (tareo === 'T' && !(Number(min) >= 1)) {
+  if (!porHora && tareo === 'T' && !(Number(min) >= 1)) {
     playAudio('error'); msgTareo(id, '⚠️ Para una T indica los minutos de tardanza (1 o más)', 'error'); return;
   }
 
@@ -817,6 +861,7 @@ function guardarTareo(id) {
       fecha:         fecha,
       tareo:         tareo,
       minTarde:      Number(min || 0),
+      horaEntrada:   porHora ? hora : null,
       observacion:   obs
     })
   })
@@ -829,10 +874,12 @@ function guardarTareo(id) {
         return;
       }
       playAudio('exito');
-      msgTareo(id, '✔ Tareo guardado', 'success');
+      // Lo que guardó el servidor (con la hora, A o T según su horario).
+      var guardado = data.tareo || tareo;
+      msgTareo(id, '✔ Tareo guardado' + (porHora ? ' (' + guardado + ')' : ''), 'success');
 
       // Refleja el cambio en la tarjeta sin recargar todo
-      document.getElementById('tb_' + id).innerHTML = tareoBadge(tareo);
+      document.getElementById('tb_' + id).innerHTML = tareoBadge(guardado);
       var btn = document.getElementById('tbtn_' + id);
       btn.textContent = '✏️ Editar tareo';
       btn.classList.add('saved');
@@ -840,9 +887,10 @@ function guardarTareo(id) {
       // Actualiza la caché local
       for (var i = 0; i < PANEL_ROWS.length; i++) {
         if (PANEL_ROWS[i].colaboradorId === id) {
-          PANEL_ROWS[i].tareo        = tareo;
+          PANEL_ROWS[i].tareo        = guardado;
           PANEL_ROWS[i].tareoMin     = Number(min || 0);
           PANEL_ROWS[i].tareoObs     = obs;
+          if (porHora) PANEL_ROWS[i].tareoHora = hora;
           break;
         }
       }
